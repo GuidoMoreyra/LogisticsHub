@@ -10,9 +10,9 @@ public class Pedido
     private decimal valorTotal;
     private long nmroDeRemito;
 
-    
 
-    public Pedido (List<LineaDePedido> pedido, Cliente cliente)
+
+    public Pedido(List<LineaDePedido> pedido, Cliente cliente)
     {
         //El pedido no deberia existir sin sus lineas ni sus clientes.
         if (pedido == null)
@@ -24,43 +24,28 @@ public class Pedido
         {
             throw new ArgumentNullException(nameof(cliente));
         }
+
         //Asigno pedido y sus clientes
         this.pedido = pedido;
         this.cliente = cliente;
-        
+
         //Calculo el valor total del pedido
-        valorTotal = 0;//Hay que hacer otro metodo en LineaPedido para obtener el precio
-        
+        valorTotal = CalcularValorTotal(); //Hay que hacer otro metodo en LineaPedido para obtener el precio
+
         fechaDelPedido = DateTime.Today;
 
-        foreach (LineaDePedido lineaDePedido in pedido)
-        {
-            DescontarStock(lineaDePedido);
-        }
-        
-    }
-    
-    private void DescontarStock (LineaDePedido linea)
-    {
-            Producto producto = linea.producto;
-            List <String> variantes = linea.GetVariantes();
-            Dictionary <String, int> cantidades = linea.cantidades;
-            foreach (String variante in variantes)
-            {
-                int cantidad = cantidades[variante];
-                producto.RestarStock(variante, cantidad);
-            }
+        pedido.ForEach(linea => linea.DescontarStock());
     }
 
     //Se crea la linea , se suma su valor al total y se descuenta su stock
     public void AgregarProducto (Producto producto, Dictionary<String, int>? cantidades)
     {
         //Primero verifico si ya hay alguna linea con este producto.
-        LineaDePedido? linea= null;
-        foreach (LineaDePedido linea in pedido)
+        LineaDePedido? linea = null;
+        foreach (LineaDePedido lineaDePedido in pedido)
         {
-            long codigoDelProducto = linea.producto.getCodigo();
-            if (codigoDelProducto == producto.getCodigo)
+            long codigoDelProducto = lineaDePedido.GetProducto().GetCodigo();
+            if (codigoDelProducto == producto.GetCodigo())
             {
                 linea = lineaDePedido;
                 break;
@@ -76,7 +61,7 @@ public class Pedido
                 string variante = elemento.Key;
                 int cantidad = elemento.Value;
                 linea.SumarVariante(variante , cantidad);
-                linea.producto.RestarStock(variante, cantidad);
+                // linea.producto.RestarStock(variante, cantidad); /* Deberia hacerlo la linea. */
             }
             //Recalculo el valor total del pedido
             CalcularValorTotal();
@@ -99,14 +84,14 @@ public class Pedido
     {
         foreach (LineaDePedido lineaDePedido in pedido)
         {
-            if (lineaDePedido.producto == producto)
+            if (lineaDePedido.GetProducto().GetCodigo() == producto.GetCodigo())
             {
                 if (variante is null)
                 {
                     pedido.Remove(lineaDePedido);
                     break;
                 }
-                producto.SumarStock(lineaDePedido.cantidades[variante], variante);
+                //producto.SumarStock(cantidades[variante], variante); Deberia hacerlo la linea
                 lineaDePedido.EliminarVariante(variante);
             }
         }

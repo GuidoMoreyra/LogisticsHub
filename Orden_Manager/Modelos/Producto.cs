@@ -8,8 +8,13 @@ public class Producto
     private decimal precio;
     private long codigo;
 
-    public decimal getPrecio()
+    public decimal GetPrecio()
     {
         return precio;
+    }
+
+    public long GetCodigo()
+    {
+        return codigo;
     }
 }
