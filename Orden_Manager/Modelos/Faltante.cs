@@ -17,5 +17,31 @@ public class Faltante
     
     public Dictionary<string, int> GetFaltante() => _faltantes;
 
-    public bool esDe(LineaDePedido linea) => _lineaConFaltante.Equals(linea);
+    public bool EsDe(LineaDePedido linea) => _lineaConFaltante.Equals(linea);
+
+    public void AñadirFaltante(String variedad, int cantidadFaltante)
+    {
+        _faltantes.Add(variedad, cantidadFaltante);
+    }
+
+    public void SumarFaltante(String variedad, int cantidadFaltante)
+    {
+        _faltantes[variedad] += cantidadFaltante;
+    }
+
+    public void RestarFaltante(String variedad, int cantidadFaltante)
+    {
+        if (_faltantes.ContainsKey(variedad) && _faltantes[variedad] > 0)
+        {
+            _faltantes[variedad] -= cantidadFaltante;
+            if (_faltantes[variedad] <= 0)
+                _faltantes.Remove(variedad);
+        }
+    }
+
+    public void EliminarVariante(String variante)
+    {
+        _faltantes.Remove(variante);
+    }
+    
 }

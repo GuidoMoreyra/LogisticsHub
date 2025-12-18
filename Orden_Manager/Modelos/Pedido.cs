@@ -35,7 +35,7 @@ public class Pedido
         //Luego le digo al producto que reste el stock en las variantes dadas.
         if (linea is not null)
         {
-            Faltante? faltante = faltantes.FirstOrDefault(f => f.esDe(linea));
+            Faltante? faltante = faltantes.FirstOrDefault(f => f.EsDe(linea));
             if (faltante == null) return;
 
             foreach (var elemento in cantidades)
@@ -61,12 +61,9 @@ public class Pedido
         string v = variante ?? SinVariante;
         LineaDePedido? lineaDePedido = pedido.FirstOrDefault(p => p.GetProducto().Equals(producto));
         if (lineaDePedido == null) return;
-
-        lineaDePedido.RestarVariante(v, cantidad);
-        Faltante? faltante = faltantes.FirstOrDefault(f => f.esDe(lineaDePedido));
+        Faltante? faltante = faltantes.FirstOrDefault(f => f.EsDe(lineaDePedido));
+        lineaDePedido.RestarVariante(v, cantidad, faltante);
         
-        if (faltante != null && faltante.GetFaltante().ContainsKey(v))
-            faltante.RestarFaltante(v, cantidad);
     }
 
     public void EliminarProducto(Producto producto, string? variante)
@@ -74,7 +71,7 @@ public class Pedido
         LineaDePedido? lineaDePedido = pedido.FirstOrDefault(p => p.GetProducto().Equals(producto));
         if (lineaDePedido == null) return;
 
-        Faltante? faltante = faltantes.FirstOrDefault(f => f.esDe(lineaDePedido));
+        Faltante? faltante = faltantes.FirstOrDefault(f => f.EsDe(lineaDePedido));
 
         if (variante == null)
         {

@@ -60,9 +60,23 @@ public class LineaDePedido
         }
     }
 
+    public void RestarVariante(String variante, int cantidad, Faltante? faltante)
+    {
+        cantidades_[variante] -= cantidad;
+        producto.SumarStock(variante, cantidad);
+        if(faltante != null)
+            faltante.RestarFaltante(variante, cantidad);
+        
+    }
     public decimal CalcularValor()
     {
         decimal cantidadesTotal = cantidades_.Values.Sum();
         return producto.GetPrecio() * cantidadesTotal;
+    }
+
+    public void EliminarVariante(String variante)
+    {
+        producto.SumarStock(variante, cantidades_[variante]);
+        cantidades_.Remove(variante);
     }
 }
