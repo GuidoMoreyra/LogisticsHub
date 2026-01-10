@@ -2,90 +2,104 @@
 
 public class Pedido
 {   
-    public const string SinVariante = "DEFAULT";
     private long nmroDePedido;
     private DateTime fechaDelPedido;
     private Cliente cliente;
-    private List<LineaDePedido> pedido;
+    private List<LineaDePedido> pedido = new();
     private List<Faltante> faltantes = new();
     private decimal valorTotal;
     private long nmroDeRemito;
 
-    public Pedido(List<LineaDePedido> pedido, Cliente cliente)
+    public Pedido(List<LineaDePedido> lineasIniciales, Cliente cliente)
     {
-        //El pedido no deberia existir sin sus lineas ni sus clientes.
-        if (pedido == null) throw new ArgumentNullException(nameof(pedido));
-        if (cliente == null) throw new ArgumentNullException(nameof(cliente));
+        if (lineasIniciales == null) throw new ArgumentNullException(nameof(lineasIniciales));
+        this.cliente = cliente ?? throw new ArgumentNullException(nameof(cliente));
 
-        //Asigno pedido y sus clientes
-        this.pedido = pedido;
-        this.cliente = cliente;
-
-        //Calculo el valor total del pedido
-        valorTotal = pedido.Sum(linea => linea.CalcularValor());
+        this.pedido = lineasIniciales;
+        ActualizarValorTotal();
         fechaDelPedido = DateTime.Today;
     }
 
-    public void AgregarProducto(Producto producto, Dictionary<string?, int> cantidades)
+    public void AgregarProducto(Producto producto, VarianteColor variante, Dictionary<string, int> tallesCantidades)
     {
-        //Primero verifico si ya hay alguna linea con este producto.
-        LineaDePedido? linea = pedido.FirstOrDefault(l => l.GetProducto().GetCodigo() == producto.GetCodigo());
+        // Buscamos la línea que coincida con el producto Y la variante de color específica
+        LineaDePedido? linea = pedido.FirstOrDefault(l => 
+            l.GetProducto().GetCodigo() == producto.GetCodigo() && 
+            l.GetVariante().Sku == variante.Sku);
 
-        //Si encontro la linea entonces le digo que agregue las variantes y sus cantidades
-        //Luego le digo al producto que reste el stock en las variantes dadas.
         if (linea is not null)
         {
             Faltante? faltante = faltantes.FirstOrDefault(f => f.EsDe(linea));
-            if (faltante == null) return;
-
-            foreach (var elemento in cantidades)
-            {
-                string variante = elemento.Key ?? SinVariante;
-                int cantidad = elemento.Value;
-                linea.SumarVariante(variante, cantidad, faltante);
+            // Si por alguna razón no hay objeto faltante, lo creamos para evitar nulos
+            if (faltante == null) {
+                faltante = new Faltante(linea, this, this.cliente, new Dictionary<string, int>());
+                faltantes.Add(faltante);
             }
-            //Recalculo el valor total del pedido
-            valorTotal = pedido.Sum(l => l.CalcularValor());
+
+            foreach (var item in tallesCantidades)
+            {
+                linea.SumarVariante(item.Key, item.Value, faltante);
+            }
         } 
-        //Si no encuentro una linea entonces creo una nueva con los parametros dados.
         else
         {
-            linea = new LineaDePedido(this, producto, cantidades);
+            linea = new LineaDePedido(this, producto, variante, tallesCantidades);
             pedido.Add(linea);
             faltantes.Add(linea.DescontarStock());
         }
+        
+        ActualizarValorTotal();
     }
     
-    public void RestarVariante(string? variante, int cantidad, Producto producto)
+    public void RestarVariante(Producto producto, VarianteColor variante, string talle, int cantidad)
     {
-        string v = variante ?? SinVariante;
-        LineaDePedido? lineaDePedido = pedido.FirstOrDefault(p => p.GetProducto().Equals(producto));
-        if (lineaDePedido == null) return;
-        Faltante? faltante = faltantes.FirstOrDefault(f => f.EsDe(lineaDePedido));
-        lineaDePedido.RestarVariante(v, cantidad, faltante);
-        
+        LineaDePedido? linea = pedido.FirstOrDefault(l => 
+            l.GetProducto().GetCodigo() == producto.GetCodigo() && 
+            l.GetVariante().Sku == variante.Sku);
+
+        if (linea == null) return;
+
+        Faltante? faltante = faltantes.FirstOrDefault(f => f.EsDe(linea));
+        linea.RestarVariante(talle, cantidad, faltante);
+        ActualizarValorTotal();
     }
 
-    public void EliminarProducto(Producto producto, string? variante)
+    public void EliminarProducto(Producto producto, VarianteColor variante, string? talle = null)
     {
-        LineaDePedido? lineaDePedido = pedido.FirstOrDefault(p => p.GetProducto().Equals(producto));
-        if (lineaDePedido == null) return;
+        LineaDePedido? linea = pedido.FirstOrDefault(l => 
+            l.GetProducto().GetCodigo() == producto.GetCodigo() && 
+            l.GetVariante().Sku == variante.Sku);
 
-        Faltante? faltante = faltantes.FirstOrDefault(f => f.EsDe(lineaDePedido));
+        if (linea == null) return;
 
-        if (variante == null)
+        Faltante? faltante = faltantes.FirstOrDefault(f => f.EsDe(linea));
+
+        if (talle == null)
         {
-            pedido.Remove(lineaDePedido);
+            // Eliminar la línea completa (todos los talles de ese color)
+            // Es necesario devolver el stock de todos los talles antes de remover
+            foreach (var t in linea.GetTalles()) 
+            {
+                linea.EliminarTalle(t);
+            }
+            pedido.Remove(linea);
             if (faltante != null) faltantes.Remove(faltante);
-            return;
+        }
+        else
+        {
+            // Eliminar solo un talle específico de esa variante de color
+            linea.EliminarTalle(talle);
+            
+            // Limpiar reporte de faltante para ese talle si existía
+            string claveFaltante = $"{variante.Color} - Talle: {talle}";
+            if (faltante != null && faltante.GetFaltante().ContainsKey(claveFaltante))
+                faltante.EliminarVariante(claveFaltante);
         }
 
-        if (lineaDePedido.GetVariantes().Contains(variante))
-            lineaDePedido.EliminarVariante(variante);
-        
-        if (faltante != null && faltante.GetFaltante().ContainsKey(variante))
-            faltante.EliminarVariante(variante);
+        ActualizarValorTotal();
     }
+
+    private void ActualizarValorTotal() => valorTotal = pedido.Sum(l => l.CalcularValor());
     
     public Cliente GetCliente() => cliente;
 }

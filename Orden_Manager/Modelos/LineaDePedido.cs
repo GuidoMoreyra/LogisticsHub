@@ -4,79 +4,73 @@ public class LineaDePedido
 {
     private Pedido pedido;
     private Producto producto;
-    private Dictionary<string, int> cantidades_ = new();
+    private VarianteColor variante;
+    private Dictionary<string, int> cantidadesPorTalle = new(); // Key: Talle, Value: Cantidad
 
-    public LineaDePedido(Pedido pedido, Producto producto, Dictionary<string?, int> cantidades)
+    public LineaDePedido(Pedido pedido, Producto producto, VarianteColor variante, Dictionary<string, int> tallesCantidades)
     {
         this.pedido = pedido;
         this.producto = producto;
-        
-        foreach (var kvp in cantidades)
-        {
-            this.cantidades_.Add(kvp.Key ?? Pedido.SinVariante, kvp.Value);
-        }
+        this.variante = variante;
+        this.cantidadesPorTalle = tallesCantidades;
     }
-
+    
+    // Getters necesarios para la lógica de Pedido
     public Producto GetProducto() => producto;
+    public VarianteColor GetVariante() => variante;
+    public List<string> GetTalles() => cantidadesPorTalle.Keys.ToList();
 
-    public List<string> GetVariantes() => cantidades_.Keys.ToList();
+    public decimal CalcularValor()
+    {
+        return cantidadesPorTalle.Sum(kvp => variante.GetPrecioTalle(kvp.Key) * kvp.Value);
+    }
 
     public Faltante DescontarStock()
     {
         var faltantesReportados = new Dictionary<string, int>();
-
-        foreach (var kvp in cantidades_)
+        foreach (var kvp in cantidadesPorTalle)
         {
-            string variante = kvp.Key;
-            int cantidadSolicitada = kvp.Value;
-            
-            int cantidadFaltante = producto.RestarStock(variante, cantidadSolicitada);
-
-            if (cantidadFaltante > 0)
-            {
-                faltantesReportados.Add(variante, cantidadFaltante);
-            }
+            int faltante = variante.RestarStock(kvp.Key, kvp.Value);
+            if (faltante > 0) 
+                faltantesReportados.Add($"{variante.Color} - Talle: {kvp.Key}", faltante);
         }
         return new Faltante(this, this.pedido, this.pedido.GetCliente(), faltantesReportados);
     }
 
-    public void SumarVariante(string variante, int cantidad, Faltante faltante)                                                      
+    public void SumarVariante(string talle, int cantidad, Faltante faltante)
     {
-        //Resto el producto
-        int cantidadFaltante = producto.RestarStock(variante, cantidad);
-
-        // Actualizar el diccionario de la línea y su faltante si corresponde
-        if (cantidades_.ContainsKey(variante))
-        {  
-            cantidades_[variante] += cantidad;
-            if (cantidadFaltante > 0)
-                faltante.SumarFaltante(variante, cantidadFaltante);
-        }
-        else 
-        {
-            cantidades_.Add(variante, cantidad);
-            if (cantidadFaltante > 0)
-                faltante.AñadirFaltante(variante, cantidadFaltante);
-        }
-    }
-
-    public void RestarVariante(String variante, int cantidad, Faltante? faltante)
-    {
-        cantidades_[variante] -= cantidad;
-        producto.SumarStock(variante, cantidad);
-        if(faltante != null)
-            faltante.RestarFaltante(variante, cantidad);
+        int cantFaltante = variante.RestarStock(talle, cantidad);
         
-    }
-    public decimal CalcularValor()
-    {
-        decimal cantidadesTotal = cantidades_.Values.Sum();
-        return producto.GetPrecio() * cantidadesTotal;
+        if (cantidadesPorTalle.ContainsKey(talle))
+            cantidadesPorTalle[talle] += cantidad;
+        else
+            cantidadesPorTalle.Add(talle, cantidad);
+
+        if (cantFaltante > 0)
+            faltante.SumarFaltante($"{variante.Color} - Talle: {talle}", cantFaltante);
     }
 
-    public void EliminarVariante(String variante)
+    public void RestarVariante(string talle, int cantidad, Faltante? faltante)
     {
-        producto.SumarStock(variante, cantidades_[variante]);
-        cantidades_.Remove(variante);
+        if (cantidadesPorTalle.ContainsKey(talle))
+        {
+            cantidadesPorTalle[talle] -= cantidad;
+            variante.SumarStock(talle, cantidad);
+            
+            if (faltante != null)
+                faltante.RestarFaltante($"{variante.Color} - Talle: {talle}", cantidad);
+            
+            // Si la cantidad llega a 0, podrías evaluar si remover el talle del diccionario
+            if (cantidadesPorTalle[talle] <= 0) cantidadesPorTalle.Remove(talle);
+        }
+    }
+
+    public void EliminarTalle(string talle)
+    {
+        if (cantidadesPorTalle.ContainsKey(talle))
+        {
+            variante.SumarStock(talle, cantidadesPorTalle[talle]);
+            cantidadesPorTalle.Remove(talle);
+        }
     }
 }

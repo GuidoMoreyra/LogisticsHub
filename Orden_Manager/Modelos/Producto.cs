@@ -2,19 +2,24 @@
 
 public class Producto
 {
-    private String nombre;
-    private String descripcion;
-    private String urlImg;
-    private decimal precio;
-    private long codigo;
+    private long codigoBase;
+    private string nombre;
+    private string descripcion;
+    private string urlImg;
+    private List<VarianteColor> variantes = new();
 
-    public decimal GetPrecio()
+    public long GetCodigo() => codigoBase;
+
+    public VarianteColor? GetVariante(string skuColor) => variantes.FirstOrDefault(v => v.Sku == skuColor);
+
+    public int RestarStock(string skuColor, string talle, int cantidad)
     {
-        return precio;
+        var v = GetVariante(skuColor);
+        return v?.RestarStock(talle, cantidad) ?? cantidad;
     }
 
-    public long GetCodigo()
+    public void SumarStock(string skuColor, string talle, int cantidad)
     {
-        return codigo;
+        GetVariante(skuColor)?.SumarStock(talle, cantidad);
     }
 }
