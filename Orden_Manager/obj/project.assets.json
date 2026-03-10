@@ -13,11 +13,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\guido\\OneDrive\\Escritorio\\Proyectos en curso\\ZondaProyect\\Orden_Manager\\Orden_Manager\\Orden_Manager.csproj",
+      "projectUniqueName": "C:\\Users\\guido\\OneDrive\\Escritorio\\Proyectos en curso\\Orden manager\\Orden_Manager\\Orden_Manager.csproj",
       "projectName": "Orden_Manager",
-      "projectPath": "C:\\Users\\guido\\OneDrive\\Escritorio\\Proyectos en curso\\ZondaProyect\\Orden_Manager\\Orden_Manager\\Orden_Manager.csproj",
+      "projectPath": "C:\\Users\\guido\\OneDrive\\Escritorio\\Proyectos en curso\\Orden manager\\Orden_Manager\\Orden_Manager.csproj",
       "packagesPath": "C:\\Users\\guido\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\guido\\OneDrive\\Escritorio\\Proyectos en curso\\ZondaProyect\\Orden_Manager\\Orden_Manager\\obj\\",
+      "outputPath": "C:\\Users\\guido\\OneDrive\\Escritorio\\Proyectos en curso\\Orden manager\\Orden_Manager\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "C:\\Users\\guido\\AppData\\Roaming\\NuGet\\NuGet.Config"
